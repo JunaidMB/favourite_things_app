@@ -202,5 +202,37 @@ aaron_fave_books <- function() {
     return(x)
 }
 
+# Info card
+info_card <- function(medium, name) {
+    
+    if (medium == "Movie") {
+        
+        x <- div(class = "thumbnail text-center",
+            style = "padding: 10px;",
+            img(class = "img-rounded img-responsive",
+                style = "height: 200px; width: 200px;",
+                src = "movie.png"),
+            h3(class="text-info", str_glue("{name}")),
+        )
+        
+        
+    } else {
+        
+        x <- div(class = "thumbnail text-center",
+            style = "padding: 10px;",
+            img(class = "img-rounded img-responsive",
+                style = "height: 200px; width: 200px;",
+                src = "book.png"),
+            h3(class="text-info", str_glue("{name}")),
+        )
+        
+        
+    }
+    
+    return(x)
+    
+}
+
+
 
 

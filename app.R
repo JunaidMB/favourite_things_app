@@ -15,6 +15,7 @@ user_base_tbl <- tibble(
     name = c("Junaid", "Aaron")
 )
 
+name <- "Junaid"
 
 set_labels(
     language = "en",
@@ -53,6 +54,46 @@ ui <- navbarPage(
         title = "Favourite Books",
     
         uiOutput(outputId = "fave_books")
+        
+    ),
+    
+    tabPanel(
+        title = "Interactive",
+        
+            column(
+                width = 4,
+                class = "well",
+                
+                selectInput(inputId = "medium_select",
+                            label = "Select Medium",
+                            choices = c("Movie", "Book"),
+                            selected = "Movie"),
+                
+                textInput(inputId = "medium_name",
+                          label = "Enter Name"),
+                
+                actionButton(inputId = "add_card",
+                             label = "Add Card",
+                             icon = icon("plus")),
+                
+                hr(),
+                
+                uiOutput(outputId = "drop_list"),
+                actionButton(inputId = "delete_card",
+                             label = "Drop")
+                
+            ),
+        
+        column(
+            width = 8,
+            uiOutput(outputId = "multi_card")
+            
+        ),
+        
+        
+        
+        
+        
         
     )
 )
@@ -99,6 +140,81 @@ server <- function(input, output, session) {
             
         } else {
             aaron_fave_books()
+        }
+    })
+    
+    # Interactive Favourites ----
+    # 2.1 Reactive Values & Storing User Input ----
+    reactive_values <- reactiveValues()
+    reactive_values$favourites_tbl <- tibble()
+    
+    observeEvent(input$add_card, {
+        
+        # Collect details of new card a user wants to add
+        new_row_tbl <- tibble(
+            medium_select = input$medium_select,
+            medium_name = input$medium_name) %>% 
+            mutate(id = str_glue("{medium_select}_{medium_name}")) 
+        
+        # Add it to a tibble that holds card information
+        reactive_values$favourites_tbl <- reactive_values$favourites_tbl %>% 
+            bind_rows(new_row_tbl) %>% 
+            distinct()
+        
+    })
+    
+    # 2.2 Rendering Multiple Items (tagList & map) ----
+    # tagList lets you bind UI together in server side.
+    
+    output$multi_card <- renderUI({
+        
+        if ( nrow(reactive_values$favourites_tbl) > 0) {
+            
+            # Split row-wise into a list
+            reactive_values$favourites_tbl %>% 
+                mutate(id = as_factor(id)) %>% 
+                split(.$id) %>% 
+                
+                # Map the data in the list to the info card elements
+                map(.f = function(data) {
+                    column(
+                        width = 4,
+                        info_card(
+                            medium = data$medium_select,
+                            name = data$medium_name
+                        )
+                    )
+                }) %>% 
+                tagList()
+            
+            
+            
+        }
+        
+        
+    })
+    
+    # 2.3 Rendering Inputs Items ----
+    output$drop_list <- renderUI({
+        if (nrow(reactive_values$favourites_tbl) > 0) {
+            
+            selectInput(
+                inputId = "drop_item",
+                label = "Item to Delete",
+                choices = reactive_values$favourites_tbl %>% pull(id)
+            )
+        }
+    })
+    
+    # 2.4 Delete Item ----
+    # Happens in the background
+    observeEvent(input$delete_card, {
+        
+        if (nrow(reactive_values$favourites_tbl) > 0) {
+            
+            # Update the favourites tibble by filtering out the cards we want to drop
+            reactive_values$favourites_tbl <- reactive_values$favourites_tbl %>% 
+                filter(!(id %in% input$drop_item))
         }
     })
     
